@@ -48,6 +48,31 @@ class CNF:
     def __repr__(self) -> str:
         return str(self)
 
+    def evaluate(self) -> Value:
+        flag = False
+        for s in self.l:
+            if s.evaluate() == Value.F:
+                return Value.F
+            elif s.evaluate() == Value.UD:
+                flag = True
+        return Value.UD if flag else Value.T
+
+    def solve(self) -> int:
+        if self.evaluate() != Value.UD:
+            return 1 if self.evaluate() == Value.T else -1
+
+        l = sorted(
+            list(filter(lambda x: x.evaluate() == Value.UD, self.l)),
+            key=lambda x: x._countUD(),
+        )
+        s = l[0]
+        vws = s._getUD()
+        vws.var.set_value(Value.F)
+        if self.solve() == 1:
+            return 1
+        vws.var.set_value(Value.T)
+        return self.solve()
+
 
 class Section(CNF):
     @dataclass
@@ -88,8 +113,8 @@ class Section(CNF):
         if len(self.set) == 0:
             return Value.T
         else:
+            flag = False
             for vws in self.set:
-                flag = False
                 if vws.evaluate() == Value.T:
                     return Value.T
 
@@ -97,6 +122,19 @@ class Section(CNF):
                     flag = True
 
             return Value.UD if flag else Value.F
+
+    def _countUD(self) -> int:
+        count = 0
+        for vws in self.set:
+            if vws.evaluate() == Value.UD:
+                count += 1
+        return count
+
+    def _getUD(self) -> Section.VariableWithSign:
+        for vws in self.set:
+            if vws.evaluate() == Value.UD:
+                return vws
+        return None
 
 
 class Variable(Section):
@@ -116,7 +154,7 @@ class Variable(Section):
         s.set.add(Section.VariableWithSign(self, False))
         return s
 
-    def _set_value(self, value: Value):
+    def set_value(self, value: Value) -> None:
         if not isinstance(value, Value):
             raise ValueError(
                 "Value must be UNDEFINED, TRUE or FALSE, but got " + str(value)
@@ -128,5 +166,11 @@ if __name__ == "__main__":
     a = Variable("a")
     b = Variable("b")
     c = Variable("c")
+    d = Variable("d")
 
-    print((a + (~b)) * c * (b + c))
+    cnf = (
+        (a + (~b)) * c * (b + c) * (a + b + c) * (a + b + (~c)) * (a + (~b) + (~c)) * d
+    )
+    print(cnf)
+    print(cnf.solve())
+    print(a.value, b.value, c.value, d.value)
