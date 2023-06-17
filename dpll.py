@@ -5,11 +5,14 @@ from enum import Enum
 
 
 class Value(Enum):
+    """True, False, Undefinedを表す列挙型"""
+
     UD = 0
     T = 1
     F = 2
 
     def __str__(self) -> str:
+        # 文字列化
         if self == Value.UD:
             return "UNDEFINED"
         elif self == Value.T:
@@ -20,6 +23,7 @@ class Value(Enum):
             raise ValueError("Value must be UNDEFINED, TRUE or FALSE")
 
     def __invert__(self) -> Value:
+        """否定(True -> False, False -> True, Undefined -> Undefined)"""
         if self == Value.UD:
             return Value.UD
         elif self == Value.T:
@@ -31,13 +35,15 @@ class Value(Enum):
 
 
 class CNF:
+    """Conjunctive Normal Form(ANDの連言標準形)を表すクラス"""
+
     def __init__(self, s: Section = None) -> None:
         self.l = []
         if s:
             self.l.append(s)
 
     def __mul__(self, other) -> CNF:
-
+        """CNF同士の結合"""
         c = CNF()
         c.l = self.l + other.l
         return c
@@ -49,6 +55,7 @@ class CNF:
         return str(self)
 
     def evaluate(self) -> Value:
+        """CNFの真偽値を返す"""
         flag = False
         for s in self.l:
             if s.evaluate() == Value.F:
@@ -58,6 +65,7 @@ class CNF:
         return Value.UD if flag else Value.T
 
     def solve(self) -> int:
+        """CNFが真になるような変数の割り当てを探索する"""
         if self.evaluate() != Value.UD:
             return 1 if self.evaluate() == Value.T else -1
 
@@ -75,8 +83,13 @@ class CNF:
 
 
 class Section(CNF):
+    """節を表すクラス"""
+
     @dataclass
     class VariableWithSign:
+        """符号付き変数を表すクラス.
+        SectionはVariableWithSignの集合として表現される."""
+
         var: Variable
         sign: bool = True
 
@@ -84,6 +97,9 @@ class Section(CNF):
             return f"(~{str(self.var)})" if not self.sign else str(self.var)
 
         def __eq__(self, __value: object) -> bool:
+            """同値性の判定.
+            変数が同一オブジェクトかつ符号が一致している場合にTrueを返す."""
+
             if isinstance(__value, Section.VariableWithSign):
                 return self.var is __value.var and self.sign == __value.sign
             return False
@@ -92,6 +108,7 @@ class Section(CNF):
             return hash((self.var, self.sign))
 
         def evaluate(self) -> Value:
+            """真偽値を返す"""
             return self.var.value if self.sign else ~self.var.value
 
     def __init__(self, v: Variable = None) -> None:
@@ -102,6 +119,7 @@ class Section(CNF):
             self.set.add(v)
 
     def __add__(self, other) -> Section:
+        """Section同士の結合"""
         s = Section()
         s.set = self.set.union(other.set)
         return s
@@ -110,6 +128,7 @@ class Section(CNF):
         return "(" + " + ".join(map(str, self.set)) + ")"
 
     def evaluate(self) -> Value:
+        """真偽値を返す"""
         if len(self.set) == 0:
             return Value.T
         else:
@@ -124,6 +143,7 @@ class Section(CNF):
             return Value.UD if flag else Value.F
 
     def _countUD(self) -> int:
+        """Section内の未定義の変数の数を返す"""
         count = 0
         for vws in self.set:
             if vws.evaluate() == Value.UD:
@@ -131,6 +151,7 @@ class Section(CNF):
         return count
 
     def _getUD(self) -> Section.VariableWithSign:
+        """未定義の変数を一つ返す"""
         for vws in self.set:
             if vws.evaluate() == Value.UD:
                 return vws
@@ -138,6 +159,8 @@ class Section(CNF):
 
 
 class Variable(Section):
+    """変数を表すクラス"""
+
     def __init__(self, name):
         super().__init__()
         self.l = [self]
@@ -149,12 +172,13 @@ class Variable(Section):
     def __str__(self) -> str:
         return self.name
 
-    def __invert__(self) -> Section.VariableWithSign:
+    def __invert__(self) -> Section:
         s = Section()
         s.set.add(Section.VariableWithSign(self, False))
         return s
 
     def set_value(self, value: Value) -> None:
+        """値の設定"""
         if not isinstance(value, Value):
             raise ValueError(
                 "Value must be UNDEFINED, TRUE or FALSE, but got " + str(value)
@@ -168,9 +192,7 @@ if __name__ == "__main__":
     c = Variable("c")
     d = Variable("d")
 
-    cnf = (
-        (a + (~b)) * c * (b + c) * (a + b + c) * (a + b + (~c)) * (a + (~b) + (~c)) * d
-    )
+    cnf = (a + b) * (~a + ~b) * (c + d) * (~c + d)
     print(cnf)
     print(cnf.solve())
-    print(a.value, b.value, c.value, d.value)
+    print(f"{a}: {a.value}\n{b}: {b.value}\n{c}: {c.value}\n{d}: {d.value}")
