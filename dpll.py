@@ -88,31 +88,47 @@ class CNF:
         if self.evaluate() != Value.UD:
             return 1 if self.evaluate() == Value.T else -1
 
+        # 決め打った変数を格納するスタック
         stack = []
+
         while True:
             e = self.evaluate()
             if e == Value.F:
+
                 while True:
                     if not stack:
+                        # スタックが空(変更できる決めうちが存在しない)なら終了
                         return -1
-                    v, val = stack.pop()
+
+                    # 最後に決め打った変数を取り出す
+                    var, val = stack.pop()
                     if val == Value.F:
-                        v.set_value(Value.T)
-                        stack.append((v, Value.T))
+                        # 決め打った変数がFalseなら、その変数をTrueに変更し、再度探索
+                        var.set_value(Value.T)
+                        stack.append((var, Value.T))
                         break
                     else:
-                        v.set_value(Value.UD)
+                        # 決め打った変数がTrueなら、その変数を未定に変更し、Falseと決め打った変数を探す
+                        var.set_value(Value.UD)
                 continue
             elif e == Value.UD:
+                # 真偽値が未定な場合、未定の変数を一つ決め打つ
+
+                # 真偽値が未定のSectionを取得
                 s = sorted(
                     list(filter(lambda x: x.evaluate() == Value.UD, self.l)),
                     key=lambda x: x._countUD(),
                 )[0]
+
+                # 真偽値が未定なSecitonから未定の変数を一つ取得
                 vws = s._getUD()
+
+                # 真偽値を決め打ち、スタックに積む
                 vws.var.set_value(Value.F)
                 stack.append((vws.var, Value.F))
                 continue
             else:
+                # e == Value.Tなら終了
                 return 1
 
 
@@ -226,9 +242,9 @@ if __name__ == "__main__":
     c = Variable("c")
     d = Variable("d")
 
-    cnf = (a + b) * (~a + ~b) * (c + d) * (~c + d)
+    cnf = (a + b) * (~a + ~b) * (c + d) * (~c + d) * ~d
     print(cnf)
-    print(cnf.solve_nonrecursive())
+    print(cnf.solve())
     print(f"{a}: {a.value}\n{b}: {b.value}\n{c}: {c.value}\n{d}: {d.value}")
     # print(cnf.solve())
     # print(f"{a}: {a.value}\n{b}: {b.value}\n{c}: {c.value}\n{d}: {d.value}")
