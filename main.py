@@ -33,7 +33,7 @@ for i in range(4):
         if sudoku[i][j]:
             cnf *= v[i][j][sudoku[i][j] - 1]
 
-print(cnf.solve())
+print(cnf.solve_nonrecursive())
 
 for i in range(4):
     for j in range(4):
