@@ -69,17 +69,51 @@ class CNF:
         if self.evaluate() != Value.UD:
             return 1 if self.evaluate() == Value.T else -1
 
-        l = sorted(
+        s = sorted(
             list(filter(lambda x: x.evaluate() == Value.UD, self.l)),
             key=lambda x: x._countUD(),
-        )
-        s = l[0]
+        )[0]
         vws = s._getUD()
         vws.var.set_value(Value.F)
         if self.solve() == 1:
             return 1
         vws.var.set_value(Value.T)
-        return self.solve()
+        ret = self.solve()
+        if ret == -1:
+            vws.var.set_value(Value.UD)
+        return ret
+
+    def solve_nonrecursive(self) -> int:
+        """再帰せずにCNFが真になるような変数の割り当てを探索する"""
+        if self.evaluate() != Value.UD:
+            return 1 if self.evaluate() == Value.T else -1
+
+        stack = []
+        while True:
+            e = self.evaluate()
+            if e == Value.F:
+                while True:
+                    if not stack:
+                        return -1
+                    v, val = stack.pop()
+                    if val == Value.F:
+                        v.set_value(Value.T)
+                        stack.append((v, Value.T))
+                        break
+                    else:
+                        v.set_value(Value.UD)
+                continue
+            elif e == Value.UD:
+                s = sorted(
+                    list(filter(lambda x: x.evaluate() == Value.UD, self.l)),
+                    key=lambda x: x._countUD(),
+                )[0]
+                vws = s._getUD()
+                vws.var.set_value(Value.F)
+                stack.append((vws.var, Value.F))
+                continue
+            else:
+                return 1
 
 
 class Section(CNF):
@@ -194,5 +228,7 @@ if __name__ == "__main__":
 
     cnf = (a + b) * (~a + ~b) * (c + d) * (~c + d)
     print(cnf)
-    print(cnf.solve())
+    print(cnf.solve_nonrecursive())
     print(f"{a}: {a.value}\n{b}: {b.value}\n{c}: {c.value}\n{d}: {d.value}")
+    # print(cnf.solve())
+    # print(f"{a}: {a.value}\n{b}: {b.value}\n{c}: {c.value}\n{d}: {d.value}")
