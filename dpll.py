@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
+from typing import Optional
 
 
 class Value(Enum):
@@ -37,8 +38,8 @@ class Value(Enum):
 class CNF:
     """Conjunctive Normal Form(ANDの連言標準形)を表すクラス"""
 
-    def __init__(self, s: Section = None) -> None:
-        self.l = []
+    def __init__(self, s: Optional[Section] = None) -> None:
+        self.l: list[Section] = []
         if s:
             self.l.append(s)
 
@@ -74,6 +75,7 @@ class CNF:
             key=lambda x: x._countUD(),
         )[0]
         vws = s._getUD()
+        assert vws is not None
         vws.var.set_value(Value.F)
         if self.solve() == 1:
             return 1
@@ -89,7 +91,7 @@ class CNF:
             return 1 if self.evaluate() == Value.T else -1
 
         # 決め打った変数を格納するスタック
-        stack = []
+        stack: list[tuple[Variable, Value]] = []
 
         while True:
             e = self.evaluate()
@@ -122,6 +124,7 @@ class CNF:
 
                 # 真偽値が未定なSecitonから未定の変数を一つ取得
                 vws = s._getUD()
+                assert vws is not None
 
                 # 真偽値を決め打ち、スタックに積む
                 vws.var.set_value(Value.F)
@@ -161,10 +164,10 @@ class Section(CNF):
             """真偽値を返す"""
             return self.var.value if self.sign else ~self.var.value
 
-    def __init__(self, v: Variable = None) -> None:
+    def __init__(self, v: Optional[Section.VariableWithSign] = None) -> None:
         super().__init__()
-        self.l = [self]
-        self.set = set()
+        self.l: list[Section] = [self]
+        self.set: set[Section.VariableWithSign] = set()
         if v:
             self.set.add(v)
 
@@ -200,7 +203,7 @@ class Section(CNF):
                 count += 1
         return count
 
-    def _getUD(self) -> Section.VariableWithSign:
+    def _getUD(self) -> Optional[Section.VariableWithSign]:
         """未定義の変数を一つ返す"""
         for vws in self.set:
             if vws.evaluate() == Value.UD:
@@ -211,13 +214,13 @@ class Section(CNF):
 class Variable(Section):
     """変数を表すクラス"""
 
-    def __init__(self, name):
+    def __init__(self, name:str):
         super().__init__()
-        self.l = [self]
+        self.l: list[Section] = [self]
         vws = Section.VariableWithSign(self)
-        self.set = {vws}
-        self.name = name
-        self.value = Value.UD
+        self.set: set[Section.VariableWithSign] = {vws}
+        self.name: str = name
+        self.value: Value = Value.UD
 
     def __str__(self) -> str:
         return self.name

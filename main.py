@@ -1,6 +1,9 @@
 from dpll import CNF, Section, Value, Variable
 
-sudoku = [[0, 0, 0, 4], [0, 0, 1, 2], [0, 0, 4, 3], [4, 3, 2, 1]]
+sudoku = [[0, 0, 0, 4],
+          [0, 0, 1, 2],
+          [0, 0, 4, 3],
+          [4, 3, 2, 1]]
 
 v = [[[Variable(f"{i}_{j}_{k}") for k in range(4)] for j in range(4)] for i in range(4)]
 cnf = CNF()
